@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Real budget workbooks and spreadsheet exports must never be committed
+*.xlsx
+*.xlsm
+*.xls
+
+# Secrets and local config
+.env
+.clasp.json
+
+# Test and build output
+test-output/
+test_output/
+out/
+tmp/

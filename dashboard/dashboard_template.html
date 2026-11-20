@@ -1,0 +1,626 @@
+<meta charset="utf-8">
+<title>NUSA Budget Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f3f4f0; --surface:#ffffff; --surface-2:#f8f9f6; --ink:#15202a; --ink-2:#3d4853; --muted:#5f6a75;
+  --rule:#dde1da; --rule-strong:#c5cbc3; --accent:#1d4f7c; --accent-soft:#e2ebf3; --accent-ink:#ffffff;
+  --track:#e8ebe5; --pace:#15202a;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-bg:#e4f4e2; --warn-bg:#fdf1d4; --serious-bg:#fbe6dc; --critical-bg:#f8dede; --idle-bg:#eceee9;
+  --good-ink:#0a6a0a; --warn-ink:#7a5600; --serious-ink:#98401c; --critical-ink:#a42727;
+  --shadow:0 1px 2px rgba(21,32,42,.06),0 4px 16px rgba(21,32,42,.05);
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0f151b; --surface:#17202a; --surface-2:#1b2530; --ink:#e7ecf0; --ink-2:#c3ccd4; --muted:#98a4b0;
+    --rule:#29343f; --rule-strong:#384654; --accent:#7eb3e3; --accent-soft:#1e2f40; --accent-ink:#0f151b;
+    --track:#26313c; --pace:#e7ecf0;
+    --good-bg:#15301a; --warn-bg:#3a2e0e; --serious-bg:#3d2418; --critical-bg:#3e1c1c; --idle-bg:#222c36;
+    --good-ink:#7fd67f; --warn-ink:#f5c95a; --serious-ink:#f2a584; --critical-ink:#f08a8a;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0f151b; --surface:#17202a; --surface-2:#1b2530; --ink:#e7ecf0; --ink-2:#c3ccd4; --muted:#98a4b0;
+  --rule:#29343f; --rule-strong:#384654; --accent:#7eb3e3; --accent-soft:#1e2f40; --accent-ink:#0f151b;
+  --track:#26313c; --pace:#e7ecf0;
+  --good-bg:#15301a; --warn-bg:#3a2e0e; --serious-bg:#3d2418; --critical-bg:#3e1c1c; --idle-bg:#222c36;
+  --good-ink:#7fd67f; --warn-ink:#f5c95a; --serious-ink:#f2a584; --critical-ink:#f08a8a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:0 64px}
+.num,td.n,.fig{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:-.01em}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.top .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;flex-direction:column;gap:1px;margin-right:auto;min-width:0}
+.brand b{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.brand span{font-size:12px;color:var(--muted)}
+.src{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
+.src .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.src.live .dot{background:var(--good)}
+.src em{font-style:normal;color:var(--ink-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule-strong);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding-inline:8px}
+.btn.ghost:hover{color:var(--ink)}
+
+.notice{margin-top:20px;display:flex;gap:14px;align-items:flex-start;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:10px;padding:14px 16px;color:var(--ink-2)}
+.notice strong{color:var(--ink)}
+.notice.err{background:var(--critical-bg);border-color:color-mix(in srgb,var(--critical) 40%,transparent)}
+
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:0}
+.sec{margin-top:32px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sec-h p{margin:0;color:var(--muted);font-size:13px}
+
+/* overview */
+.overview{margin-top:24px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.stat{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat label{font-size:12px;color:var(--muted);font-weight:600}
+.stat .fig{font-size:clamp(20px,2.4vw,28px);font-weight:800;letter-spacing:-.02em}
+.stat small{color:var(--muted);font-size:12px}
+.pace{grid-column:1/-1;background:var(--surface);padding:16px 18px 18px;display:grid;gap:10px}
+.pace-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.pace-top b{color:var(--ink)}
+.bar{position:relative;height:10px;background:var(--track);border-radius:5px}
+.bar .fill{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--accent);max-width:100%}
+.bar .pend{position:absolute;top:0;bottom:0;border-radius:0 5px 5px 0;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--accent) 45%,transparent) 0 3px,transparent 3px 6px)}
+.bar .mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--pace);border-radius:1px}
+.bar.big{height:14px;border-radius:7px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* attention */
+.attn{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.attn-card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;display:grid;gap:6px;cursor:pointer;text-align:left}
+.attn-card:hover{border-color:var(--accent)}
+.attn-card .t{font-weight:700;font-size:13.5px;line-height:1.3}
+.attn-card .m{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);background:var(--surface);border:1px dashed var(--rule-strong);border-radius:10px;padding:16px;font-size:13px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px 2px 7px;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-over,.s-unb{background:var(--critical-bg);color:var(--critical-ink)}
+.s-almost{background:var(--serious-bg);color:var(--serious-ink)}
+.s-watch{background:var(--warn-bg);color:var(--warn-ink)}
+.s-ok{background:var(--good-bg);color:var(--good-ink)}
+.s-idle{background:var(--idle-bg);color:var(--muted)}
+.s-none{background:transparent;color:var(--muted)}
+
+/* dept switcher */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.tab{flex:none;border:1px solid var(--rule);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:600;font-size:13px;display:flex;gap:8px;align-items:center}
+.tab small{font-weight:500;color:var(--muted);font-size:11.5px}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.tab[aria-pressed="true"] small{color:color-mix(in srgb,var(--ground) 75%,transparent)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.tools input[type=search],.tools select{border:1px solid var(--rule-strong);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:13px}
+.tools input[type=search]{flex:1 1 220px;min-width:0}
+.tools label.cb{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink-2);cursor:pointer}
+
+/* department block */
+.dept{margin-top:18px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.dept-h{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,2fr);gap:18px;align-items:center;padding:16px 18px;border-bottom:1px solid var(--rule)}
+.dept-h h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.015em}
+.dept-h .sub{color:var(--muted);font-size:12px;margin-top:2px}
+.dept-h .figs{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+.dept-h .figs b{display:block;color:var(--ink);font-size:15px;font-weight:700}
+.semline{margin-top:12px;display:grid;gap:6px;font-size:12px;color:var(--muted)}
+.semline b{color:var(--ink)}
+.period{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 5px;vertical-align:1px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);background:var(--surface-2);white-space:nowrap}
+th.n,td.n{text-align:right}
+td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:middle}
+tr.gl{cursor:pointer}
+tr.gl:hover td{background:var(--surface-2)}
+tr.gl td:first-child{width:36%}
+.desc{font-weight:600;line-height:1.3}
+.desc + .mono{color:var(--muted);margin-top:2px;display:block}
+.catline{font-size:11.5px;color:var(--muted)}
+td.use{width:190px}
+.use-cell{display:grid;gap:6px}
+.use-cell .row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
+.use-cell .bar{height:6px}
+.use-cell .bar .fill{border-radius:3px}
+.fill.f-over{background:var(--critical)} .fill.f-almost{background:var(--serious)} .fill.f-watch{background:var(--warn)} .fill.f-ok{background:var(--good)}
+td.neg{color:var(--critical-ink);font-weight:700}
+tr.detail td{background:var(--surface-2);padding:0}
+.detail-in{padding:14px 16px 18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px}
+.detail-in h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mini{width:100%;min-width:0;font-size:12.5px}
+.mini td{padding:5px 0;border-bottom:1px dashed var(--rule);background:transparent}
+.mini td.n{padding-left:10px}
+.caret{display:inline-block;width:10px;color:var(--muted);transition:transform .15s}
+tr.open .caret{transform:rotate(90deg)}
+.more{padding:10px 16px;font-size:12.5px;color:var(--muted)}
+
+/* chart */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px}
+.two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);font-size:12px;padding:8px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);box-shadow:var(--shadow)}
+.tip b{display:block;font-size:13px}
+.ins{display:grid;gap:14px}
+.ins h3{margin:0 0 6px;font-size:14px}
+.ins ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.ins li{display:flex;justify-content:space-between;gap:10px;font-size:13px;border-bottom:1px dashed var(--rule);padding-bottom:6px}
+.ins li span:first-child{min-width:0}
+.ins li small{display:block;color:var(--muted);font-size:11.5px}
+
+.drop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:color-mix(in srgb,var(--ground) 80%,transparent);backdrop-filter:blur(3px)}
+.drop div{border:2px dashed var(--accent);border-radius:16px;padding:40px 48px;background:var(--surface);font-weight:700;font-size:16px}
+footer{margin-top:40px;color:var(--muted);font-size:12px;display:grid;gap:4px}
+
+@media (max-width:860px){
+  .overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two{grid-template-columns:1fr}
+  .dept-h{grid-template-columns:1fr}
+  .detail-in{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><b>NUSA Budget Tracker</b><span>2026–27 · fiscal year May 1, 2026 – April 30, 2027 · <span id="semNow"></span></span></div>
+    <div class="src" id="src"><span class="dot"></span><span>Showing</span><em id="srcName">budget snapshot</em></div>
+    <label class="btn primary" for="file">Load tracker file</label>
+    <input id="file" type="file" accept=".xlsx,.xlsm" hidden>
+    <button class="btn ghost" id="forget" hidden>Forget file</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="notice"></div>
+
+  <section class="overview" id="overview" aria-label="Overall expense budget"></section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Needs attention</h2><p>Over budget, spending with no budget, almost out, or spending faster than the year</p></div>
+    <div id="attn"></div>
+  </section>
+
+  <section class="sec" id="gl-sec">
+    <div class="sec-h"><h2>GL codes by department</h2><p>Ranked from closest to budget to most money left. Click a row for line items and expenses.</p></div>
+    <div class="tabs" id="tabs" role="toolbar" aria-label="Department"></div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="Search GL code, description or line item">
+      <select id="sort" aria-label="Sort GL lines">
+        <option value="risk">Closest to budget first</option>
+        <option value="left">Least money left first</option>
+        <option value="most">Most money left first</option>
+        <option value="budget">Biggest budget first</option>
+      </select>
+      <label class="cb"><input type="checkbox" id="empty"> Include GL codes with no budget</label>
+    </div>
+    <div id="depts"></div>
+  </section>
+
+  <section class="sec two">
+    <div class="panel">
+      <div class="sec-h"><h2 id="chartTitle">Spending through the year</h2></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Spent so far (approved + posted)</span><span><i style="background:transparent;border-top:2px dashed var(--muted);height:0;width:14px"></i>Even pace to spend the budget</span></div>
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="panel ins" id="insights"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Recent expenses</h2><p id="txMeta"></p></div>
+    <div class="panel" style="padding:0;overflow:hidden"><div class="tbl-wrap" id="tx"></div></div>
+  </section>
+
+  <footer>
+    <span>Budget figures come from the AGM budget (GL corrected, V3). Spent = Expense Ledger rows marked Approved or Posted (claims flow in from the expense-claim system; manual purchases are added in the same Google tab). Pending is shown separately; Void rows are ignored. Amounts include tax.</span>
+    <span>Faculty lines get half their budget each semester (Fall = May–Dec, Spring = Jan–Apr), with no rollover. Their rows show the current semester's half; the semester comes from each expense's date.</span>
+    <span>The file you load is read in this browser only. It is not uploaded anywhere.</span>
+  </footer>
+</main>
+<div class="drop" id="drop" hidden><div>Drop the tracker file to load it</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const SNAPSHOT = /*__DATA__*/null;
+const FY_START = new Date(2026,4,1), FY_END = new Date(2027,3,30,23,59);
+const MONTHS = ["May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr"];
+const DEPT_ORDER = ["Administration","Faculty","Communications","Events","The Courier","Yearbook","Student Lounge (The Commons)","Special Initiatives","Proposal Committee","Capital Projects"];
+const STORE = "nusa-tracker-v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt0 = new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD",currencyDisplay:"narrowSymbol",maximumFractionDigits:0});
+const fmt2 = new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD",currencyDisplay:"narrowSymbol",minimumFractionDigits:2,maximumFractionDigits:2});
+const money = v => (v < 0 ? "−" : "") + fmt0.format(Math.abs(Math.round(v)));
+const money2 = v => (v < 0 ? "−" : "") + fmt2.format(Math.abs(v));
+const pct = v => v == null ? "–" : (v*100).toFixed(v < 0.1 && v > 0 ? 1 : 0) + "%";
+const dfmt = d => d ? d.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "–";
+
+let data = SNAPSHOT, meta = {name:"Budget snapshot", live:false};
+const ui = {dept:"all", q:"", sort:"risk", empty:false, open:new Set()};
+try { const saved = JSON.parse(localStorage.getItem(STORE) || "null"); if (saved && saved.data) { data = revive(saved.data); meta = saved.meta; } } catch(e) {}
+try { const t = localStorage.getItem(STORE+"-dept"); if (t) ui.dept = t; } catch(e) {}
+
+/* dates are calendar days: build them in local time so an expense never shifts a day (or a semester) */
+function toDate(v){
+  if (v == null || v === "") return null;
+  if (v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+  if (typeof v === "number") return new Date(1899, 11, 30 + Math.floor(v));
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  const d = new Date(v); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function dayKey(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : null; }
+function revive(d){ d.tx.forEach(t => { t.date = toDate(t.date); }); return d; }
+
+const now = new Date();
+const yearGone = Math.max(0, Math.min(1, (now - FY_START) / (FY_END - FY_START)));
+const daysGone = Math.max(1, (Math.min(now, FY_END) - FY_START) / 864e5);
+/* Faculty lines get half their budget per semester: Fall = May-Dec, Spring = Jan-Apr */
+const semOf = d => d ? (d.getMonth() <= 3 ? "Spring" : "Fall") : "";
+const SEM = {Fall:[new Date(2026,4,1), new Date(2026,11,31,23,59)], Spring:[new Date(2027,0,1), new Date(2027,3,30,23,59)]};
+const curSem = now < SEM.Spring[0] ? "Fall" : "Spring";
+const semGone = Math.max(0, Math.min(1, (now - SEM[curSem][0]) / (SEM[curSem][1] - SEM[curSem][0])));
+
+/* ---------- model ---------- */
+function model(){
+  const budget = new Map(), items = new Map();
+  const semB = new Map();
+  data.li.forEach(l => {
+    if (l.inc) { budget.set(l.k, (budget.get(l.k)||0) + l.b); if (l.sem === "Fall" || l.sem === "Spring") { const key = l.k + "|" + l.sem; semB.set(key, (semB.get(key)||0) + l.b); } }
+    (items.get(l.k) || items.set(l.k, []).get(l.k)).push(l);
+  });
+  const byLabel = new Map();
+  const gl = data.gl.map(g => { const r = {...g, budget: budget.get(g.k)||0, spent:0, pending:0, items: items.get(g.k)||[], tx:[],
+      sem:{Fall:{b:semB.get(g.k+"|Fall")||0, s:0, p:0}, Spring:{b:semB.get(g.k+"|Spring")||0, s:0, p:0}}}; byLabel.set(g.label, r); return r; });
+  let unmatched = 0;
+  const tx = data.tx.filter(t => t.status !== "Example" && t.amount);
+  tx.forEach(t => {
+    const r = byLabel.get(t.line);
+    if (!r || !["Pending", "Approved", "Posted"].includes(t.status)) { unmatched++; return; }
+    t.gl = r; r.tx.push(t);
+    const s = r.sem[semOf(t.date) || curSem];
+    if (t.status === "Approved" || t.status === "Posted") { r.spent += t.amount; if (s) s.s += t.amount; }
+    else if (t.status === "Pending") { r.pending += t.amount; if (s) s.p += t.amount; }
+  });
+  gl.forEach(r => {
+    // "period" = what the limit applies to: the current semester's half for split lines, the full year otherwise
+    const cur = r.sem[curSem];
+    r.period = r.split ? curSem : "Full year";
+    r.pb = r.split ? cur.b : r.budget; r.ps = r.split ? cur.s : r.spent; r.pp = r.split ? cur.p : r.pending;
+    r.gone = r.split ? semGone : yearGone;
+    r.left = r.pb - r.ps;
+    r.used = r.pb > 0 ? r.ps / r.pb : null;
+    r.status = status(r);
+    r.risk = r.pb > 0 ? r.ps / r.pb : (r.ps > 0 ? 1e6 : -1);
+  });
+  const exp = gl.filter(r => r.sec === "Expenditure");
+  return {gl, exp, tx: tx.filter(t => t.gl), unmatched};
+}
+function status(r){
+  if (r.pb <= 0) return r.ps > 0 ? {k:"unb", t:"No budget"} : {k:"none", t:"No budget"};
+  const u = r.ps / r.pb;
+  if (r.ps > r.pb) return {k:"over", t:"Over budget"};
+  if (u >= 0.9) return {k:"almost", t:"Almost out"};
+  if (u >= 0.75) return {k:"watch", t:"Watch"};
+  if (r.ps === 0) return {k:"idle", t:"Not started"};
+  return {k:"ok", t:"On track"};
+}
+const fillClass = k => ({over:"f-over",unb:"f-over",almost:"f-almost",watch:"f-watch",ok:"f-ok"}[k] || "");
+const chip = s => `<span class="chip s-${s.k}">${esc(s.t)}</span>`;
+function sum(rows, f){ return rows.reduce((a,r) => a + f(r), 0); }
+function deptList(M){ const set = new Set(M.exp.map(r => r.dept)); return DEPT_ORDER.filter(d => set.has(d)).concat([...set].filter(d => !DEPT_ORDER.includes(d))); }
+
+/* ---------- render ---------- */
+function render(){
+  const M = model();
+  renderSource(M); renderOverview(M); renderAttention(M); renderTabs(M); renderDepts(M); renderChart(M); renderInsights(M); renderTx(M);
+}
+
+function renderSource(M){
+  $("#src").classList.toggle("live", meta.live);
+  $("#srcName").textContent = meta.name;
+  $("#forget").hidden = !meta.live;
+  const n = $("#notice");
+  if (!meta.live) {
+    n.innerHTML = `<div class="notice"><div><strong>You're looking at the approved 2026–27 budget with no expenses yet.</strong> In the claim log (Google Sheets), use <strong>File → Download → Microsoft Excel (.xlsx)</strong>, then choose <strong>Load tracker file</strong> (or drop the file on this page) to see spending.</div></div>`;
+  } else if (M.unmatched) {
+    n.innerHTML = `<div class="notice err"><div><strong>${M.unmatched} expense${M.unmatched>1?"s aren't":" isn't"} counted.</strong> Either the GL code isn't on the tracker's GL Map, or the Status isn't Pending, Approved, Posted or Void. Fix the row on the Expense Ledger tab (Google Sheets), then download the file again.</div></div>`;
+  } else n.innerHTML = "";
+}
+
+function paceBar(spent, pending, budget, big, gone = yearGone){
+  const s = budget > 0 ? Math.min(1, spent/budget) : (spent > 0 ? 1 : 0);
+  const p = budget > 0 ? Math.min(1 - s, pending/budget) : 0;
+  return `<div class="bar${big?" big":""}" role="img" aria-label="${pct(budget>0?spent/budget:null)} of budget spent, ${pct(yearGone)} of the year gone">
+    <div class="fill" style="width:${s*100}%"></div>
+    ${p > 0 ? `<div class="pend" style="left:${s*100}%;width:${p*100}%"></div>` : ""}
+    <div class="mark" style="left:calc(${gone*100}% - 1px)" title="Today: ${pct(gone)} of the ${gone === yearGone ? "year" : "semester"} gone"></div></div>`;
+}
+
+function renderOverview(M){
+  const B = sum(M.exp, r => r.budget), S = sum(M.exp, r => r.spent), P = sum(M.exp, r => r.pending);
+  const rev = sum(M.gl.filter(r => r.sec === "Revenue" && r.dept !== "Capital Projects"), r => r.budget);
+  const u = B > 0 ? S/B : 0;
+  const ahead = u - yearGone;
+  $("#overview").innerHTML = `
+    <div class="stat"><label>Expense budget</label><span class="fig">${money(B)}</span><small>${M.exp.filter(r=>r.budget>0).length} GL lines with money · revenue budget ${money(rev)}</small></div>
+    <div class="stat"><label>Spent</label><span class="fig">${money(S)}</span><small>${pct(u)} of the budget</small></div>
+    <div class="stat"><label>Pending approval</label><span class="fig">${money(P)}</span><small>${M.tx.filter(t=>t.status==="Pending").length} expenses waiting</small></div>
+    <div class="stat"><label>Remaining</label><span class="fig">${money(B - S)}</span><small>${money(B - S - P)} if pending is approved</small></div>
+    <div class="pace">
+      <div class="pace-top"><span><b>${pct(u)}</b> of the expense budget spent</span><span><b>${pct(yearGone)}</b> of the fiscal year gone · ${ahead > 0.05 ? "spending ahead of the calendar" : ahead < -0.05 ? "spending behind the calendar" : "spending on pace"}</span></div>
+      ${paceBar(S, P, B, true)}
+      <div class="legend"><span><i style="background:var(--accent)"></i>Spent</span><span><i style="background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--accent) 45%,transparent) 0 3px,transparent 3px 6px)"></i>Pending</span><span><i style="background:var(--pace);width:2px;height:12px"></i>Today (share of the year gone)</span></div>
+    </div>`;
+}
+
+function renderAttention(M){
+  const list = M.exp.filter(r => ["over","unb","almost"].includes(r.status.k) || (r.pb > 0 && r.used >= 0.4 && r.used - r.gone > 0.25))
+    .sort((a,b) => b.risk - a.risk).slice(0, 9);
+  if (!list.length) {
+    $("#attn").innerHTML = `<div class="empty">${M.tx.length ? "Nothing needs attention: no GL line is over budget, almost out, or spending well ahead of the year." : "Nothing yet. Once expenses are logged, GL lines that are over budget, almost out, or spending fast show up here."}</div>`;
+    return;
+  }
+  $("#attn").innerHTML = `<div class="attn">${list.map(r => {
+    const s = ["over","unb","almost"].includes(r.status.k) ? r.status : {k:"watch", t:"Spending fast"};
+    return `<button class="attn-card" data-jump="${r.k}">
+      <span class="m"><span>${esc(r.dept)}</span>${chip(s)}</span>
+      <span class="t">${esc(r.desc)}</span>
+      <span class="m"><span class="mono">${esc(r.gl)}</span>${r.split ? `<span>${r.period} half</span>` : ""}</span>
+      <span class="m"><span>${money(r.ps)} of ${money(r.pb)}</span><span class="${r.left<0?"neg":""}" style="font-weight:700;color:${r.left<0?"var(--critical-ink)":"var(--ink)"}">${r.left<0?"Over by "+money(-r.left):money(r.left)+" left"}</span></span>
+    </button>`; }).join("")}</div>`;
+}
+
+function renderTabs(M){
+  const ds = deptList(M);
+  if (ui.dept !== "all" && !ds.includes(ui.dept)) ui.dept = "all";
+  const tab = (id, name, rows) => {
+    const B = sum(rows, r => r.budget), S = sum(rows, r => r.spent);
+    return `<button class="tab" data-dept="${esc(id)}" aria-pressed="${ui.dept===id}">${esc(name)}<small>${B>0?pct(S/B)+" used":"no budget"}</small></button>`;
+  };
+  $("#tabs").innerHTML = tab("all","All departments",M.exp) + ds.map(d => tab(d, d, M.exp.filter(r => r.dept === d))).join("");
+}
+
+function sorter(){
+  return {
+    risk:(a,b) => b.risk - a.risk || a.left - b.left,
+    left:(a,b) => a.left - b.left,
+    most:(a,b) => b.left - a.left,
+    budget:(a,b) => b.budget - a.budget
+  }[ui.sort];
+}
+
+function renderDepts(M){
+  const q = ui.q.trim().toLowerCase();
+  const show = deptList(M).filter(d => ui.dept === "all" || d === ui.dept);
+  const html = show.map(d => {
+    const all = M.exp.filter(r => r.dept === d);
+    let rows = all.filter(r => ui.empty || r.budget !== 0 || r.spent !== 0 || r.pending !== 0);
+    if (q) rows = rows.filter(r => (r.desc + " " + r.gl + " " + r.cat + " " + r.items.map(i => i.name).join(" ")).toLowerCase().includes(q));
+    if (!rows.length && ui.dept === "all") return "";
+    rows.sort(sorter());
+    const B = sum(all, r => r.budget), S = sum(all, r => r.spent), P = sum(all, r => r.pending);
+    const dnum = all[0] ? all[0].dnum : "";
+    return `<article class="dept">
+      <div class="dept-h">
+        <div><h3>${esc(d)}</h3><div class="sub">Dept ${esc(dnum)} · ${all.filter(r=>r.budget>0).length} GL lines with budget${all.some(r=>r.budget===0)?` · ${all.filter(r=>r.budget===0).length} with none`:""}</div></div>
+        <div>
+          <div class="figs"><span>Budget<b class="num">${money(B)}</b></span><span>Spent<b class="num">${money(S)}</b></span><span>Pending<b class="num">${money(P)}</b></span><span>Remaining<b class="num" style="${B-S<0?"color:var(--critical-ink)":""}">${money(B-S)}</b></span><span>Used<b class="num">${B>0?pct(S/B):"–"}</b></span></div>
+          ${paceBar(S, P, B)}
+          ${all.some(r => r.split) ? (() => { const sb = sum(all, r => r.sem[curSem].b), ss = sum(all, r => r.sem[curSem].s), sp = sum(all, r => r.sem[curSem].p);
+            return `<div class="semline"><span><b>${curSem} half</b> (each line gets half its budget per semester, no rollover): ${money(ss)} of ${money(sb)} used · ${money(sb - ss)} left</span>${paceBar(ss, sp, sb, false, semGone)}</div>`; })() : ""}
+        </div>
+      </div>
+      ${rows.length ? `<div class="tbl-wrap"><table>
+        <thead><tr><th>GL line</th><th class="n">Budget${all.some(r => r.split) ? " (this semester)" : ""}</th><th class="n">Spent</th><th class="n">Pending</th><th class="n">Remaining</th><th>Used</th></tr></thead>
+        <tbody>${rows.map(r => glRow(r)).join("")}</tbody></table></div>`
+      : `<div class="more">No GL lines match. ${q ? "Try a different search." : "Tick “Include GL codes with no budget” to see them all."}</div>`}
+    </article>`;
+  }).join("");
+  $("#depts").innerHTML = html || `<div class="empty" style="margin-top:18px">No GL lines match “${esc(ui.q)}”.</div>`;
+}
+
+function glRow(r){
+  const open = ui.open.has(r.k);
+  const u = r.pb > 0 ? Math.min(1, r.ps/r.pb) : (r.ps > 0 ? 1 : 0);
+  return `<tr class="gl${open?" open":""}" data-k="${r.k}" tabindex="0" aria-expanded="${open}">
+    <td><span class="caret">▸</span> <span class="desc">${esc(r.desc)}</span>${r.split ? `<span class="period">${r.period} half</span>` : ""}<span class="mono">${esc(r.gl)}</span>${r.cat && r.cat !== "(No category)" ? `<span class="catline">${esc(r.cat)}</span>` : ""}</td>
+    <td class="n">${money(r.pb)}</td><td class="n">${money(r.ps)}</td><td class="n">${r.pp?money(r.pp):"–"}</td>
+    <td class="n ${r.left<0?"neg":""}">${money(r.left)}</td>
+    <td class="use"><div class="use-cell"><div class="row">${chip(r.status)}<span class="num">${r.used==null?"":pct(r.used)}</span></div>
+      <div class="bar"><div class="fill ${fillClass(r.status.k)}" style="width:${u*100}%"></div><div class="mark" style="left:calc(${r.gone*100}% - 1px);top:-2px;bottom:-2px;opacity:.55"></div></div></div></td>
+  </tr>${open ? detailRow(r) : ""}`;
+}
+
+function detailRow(r){
+  const seen = new Map();
+  r.items.forEach(i => { const k = i.name + "|" + i.grp + "|" + i.inc; seen.set(k, {...i, b:(seen.get(k)?.b || 0) + i.b}); });
+  const its = [...seen.values()];
+  const semTbl = r.split ? `<h4 style="margin-top:14px">By semester (half each, no rollover)</h4><table class="mini"><tbody>${["Fall","Spring"].map(s =>
+      `<tr><td>${s}${s === curSem ? " <span class=\"catline\">· now</span>" : ""}</td><td class="n">${money2(r.sem[s].s)} of ${money2(r.sem[s].b)}</td><td class="n">${money2(r.sem[s].b - r.sem[s].s)} left</td></tr>`).join("")}</tbody></table>` : "";
+  const items = its.length > 1 || (its[0] && its[0].name !== r.desc)
+    ? `<table class="mini"><tbody>${its.map(i => `<tr><td>${esc(i.name)}${i.grp?` <span class="catline">· ${esc(i.grp)}</span>`:""}${i.inc?"":` <span class="catline">(not in AGM total)</span>`}</td><td class="n">${money2(i.b)}</td></tr>`).join("")}</tbody></table>`
+    : `<p class="catline" style="margin:0">No sub-items: the whole ${money(r.budget)} is one line in the AGM budget.</p>`;
+  const tx = r.tx.slice().sort((a,b) => (b.date||0) - (a.date||0));
+  const txh = tx.length ? `<table class="mini"><tbody>${tx.map(t => `<tr><td>${dfmt(t.date)}${r.split && t.date ? ` <span class="catline">${semOf(t.date)}</span>` : ""}</td><td>${esc(t.what || t.item || t.vendor || "Expense")}${t.vendor?` <span class="catline">· ${esc(t.vendor)}</span>`:""}</td><td><span class="chip s-${t.status==="Pending"?"watch":"ok"}">${esc(t.status)}</span></td><td class="n">${money2(t.amount)}</td></tr>`).join("")}</tbody></table>`
+    : `<p class="catline" style="margin:0">No expenses logged on this GL line yet.</p>`;
+  return `<tr class="detail"><td colspan="6"><div class="detail-in">
+    <div><h4>What the budget covers</h4>${items}<p class="catline" style="margin:10px 0 0">Full-year budget ${money2(r.budget)} · 2025–26 actual: ${money2(r.prev)}</p>${semTbl}</div>
+    <div><h4>Expenses (${tx.length})</h4>${txh}</div></div></td></tr>`;
+}
+
+/* ---------- chart: cumulative spend vs even pace ---------- */
+function renderChart(M){
+  const rows = M.exp.filter(r => ui.dept === "all" || r.dept === ui.dept);
+  const B = sum(rows, r => r.budget);
+  const monthly = new Array(12).fill(0);
+  M.tx.forEach(t => {
+    if (!(t.status === "Approved" || t.status === "Posted") || !t.date) return;
+    if (ui.dept !== "all" && t.gl.dept !== ui.dept) return;
+    const m = (t.date.getFullYear() - 2026) * 12 + t.date.getMonth() - 4;
+    monthly[Math.max(0, Math.min(11, m))] += t.amount;
+  });
+  const curM = Math.max(0, Math.min(11, (now.getFullYear() - 2026) * 12 + now.getMonth() - 4));
+  const cum = []; monthly.reduce((a, v, i) => (cum[i] = a + v, a + v), 0);
+  $("#chartTitle").textContent = "Spending through the year · " + (ui.dept === "all" ? "all departments" : ui.dept);
+  const W = 640, H = 260, L = 58, R = 16, T = 14, Bm = 28;
+  const maxV = Math.max(B, cum[curM] || 0, 1);
+  const step = niceStep(maxV / 4); const top = Math.ceil(maxV / step) * step;
+  const x = i => L + (i + 1) * (W - L - R) / 12, x0 = L;
+  const y = v => T + (H - T - Bm) * (1 - v / top);
+  let g = "";
+  for (let v = 0; v <= top + 1e-6; v += step) g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${shortMoney(v)}</text>`;
+  MONTHS.forEach((m, i) => g += `<text x="${x(i) - (W-L-R)/24}" y="${H-8}" text-anchor="middle">${m}</text>`);
+  const pace = `<line x1="${x0}" y1="${y(0)}" x2="${x(11)}" y2="${y(B)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  const pts = [[x0, y(0)]].concat(cum.slice(0, curM + 1).map((v, i) => [x(i), y(v)]));
+  const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const area = line + ` L ${pts[pts.length-1][0].toFixed(1)} ${y(0)} L ${x0} ${y(0)} Z`;
+  const last = pts[pts.length - 1];
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative spending by month compared with an even pace">
+    ${g}${pace}
+    <path d="${area}" fill="var(--accent)" fill-opacity=".12"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${x(11)}" y="${y(B) - 8}" text-anchor="end" style="font-weight:600">Budget ${shortMoney(B)}</text>
+    <rect id="hit" x="${L}" y="${T}" width="${W-L-R}" height="${H-T-Bm}" fill="transparent"/>
+    <line id="cross" x1="0" x2="0" y1="${T}" y2="${H-Bm}" stroke="var(--rule-strong)" stroke-width="1" visibility="hidden"/>
+  </svg><div class="tip" id="tip" hidden></div>`;
+  const el = $("#chart"); el.innerHTML = svg;
+  const hit = el.querySelector("#hit"), tip = el.querySelector("#tip"), cross = el.querySelector("#cross");
+  const move = ev => {
+    const box = el.querySelector("svg").getBoundingClientRect();
+    const px = (ev.clientX - box.left) * W / box.width;
+    const idx = Math.max(0, Math.min(11, Math.floor((px - L) / ((W - L - R) / 12))));
+    const paceV = B * (idx + 1) / 12;
+    cross.setAttribute("x1", x(idx)); cross.setAttribute("x2", x(idx)); cross.setAttribute("visibility", "visible");
+    tip.hidden = false;
+    tip.style.left = (x(idx) / W * box.width) + "px"; tip.style.top = (y(Math.max(idx <= curM ? cum[idx] : 0, paceV)) / H * box.height) + "px";
+    tip.innerHTML = idx <= curM
+      ? `<b>End of ${MONTHS[idx]}</b>Spent ${money(cum[idx])} (${money(monthly[idx])} that month)<br>Even pace ${money(paceV)}`
+      : `<b>End of ${MONTHS[idx]}</b>Even pace ${money(paceV)}<br>Not reached yet`;
+  };
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); });
+}
+function niceStep(v){ const p = Math.pow(10, Math.floor(Math.log10(v || 1))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function shortMoney(v){ return v >= 1000 ? "$" + (v/1000).toFixed(v >= 10000 || v % 1000 === 0 ? 0 : 1) + "k" : "$" + Math.round(v); }
+
+/* ---------- insights ---------- */
+function renderInsights(M){
+  const rows = M.exp.filter(r => ui.dept === "all" || r.dept === ui.dept);
+  const B = sum(rows, r => r.budget), S = sum(rows, r => r.spent);
+  const scope = ui.dept === "all" ? "all departments" : ui.dept;
+  const perDay = S / daysGone, proj = yearGone > 0.04 ? S / yearGone : null;
+  const runouts = rows.filter(r => r.pb > 0 && r.ps > 0 && r.ps < r.pb).map(r => {
+    const [st, en] = r.split ? SEM[curSem] : [FY_START, FY_END];
+    const days = Math.max(1, (Math.min(now, en) - st) / 864e5);
+    const d = new Date(st.getTime() + (r.pb / (r.ps / days)) * 864e5);
+    return {r, d, en};
+  }).filter(o => o.d < o.en).sort((a,b) => a.d - b.d).slice(0, 5);
+  const idle = rows.filter(r => r.budget > 0 && r.spent === 0 && r.pending === 0).sort((a,b) => b.budget - a.budget).slice(0, 5);
+  const top = rows.filter(r => r.spent > 0).sort((a,b) => b.spent - a.spent).slice(0, 5);
+  const li = (a, b, sub) => `<li><span>${a}${sub?`<small>${sub}</small>`:""}</span><span class="num" style="font-weight:700;white-space:nowrap">${b}</span></li>`;
+  $("#insights").innerHTML = `
+    <div><h2 style="margin-bottom:10px">At this pace · ${esc(scope)}</h2>
+      ${S > 0 && proj != null
+        ? `<ul>${li("Projected spend by April 30", money(proj), `${money(perDay)} a day so far`)}${li(proj > B ? "Projected overspend" : "Projected left over", money(Math.abs(B - proj)))}</ul>`
+        : `<p class="catline" style="margin:0">A projection appears once expenses are logged.</p>`}
+    </div>
+    <div><h3>Will run out early</h3>
+      ${runouts.length ? `<ul>${runouts.map(o => li(esc(o.r.desc), "~" + o.d.toLocaleDateString("en-CA",{month:"short",day:"numeric"}), esc(o.r.dept) + " · " + money(o.r.left) + " left" + (o.r.split ? " in " + o.r.period : ""))).join("")}</ul>` : `<p class="catline" style="margin:0">No GL line is on track to run out before April 30 (or, for Faculty, before the semester ends).</p>`}
+    </div>
+    <div><h3>${top.length ? "Biggest spending so far" : "Largest budgets not started"}</h3>
+      <ul>${(top.length ? top.map(r => li(esc(r.desc), money(r.spent), esc(r.dept) + " · " + pct(r.used) + " of " + money(r.budget))) : idle.map(r => li(esc(r.desc), money(r.budget), esc(r.dept) + " · " + esc(r.gl)))).join("")}</ul>
+    </div>`;
+}
+
+/* ---------- transactions ---------- */
+function renderTx(M){
+  const list = M.tx.filter(t => ui.dept === "all" || t.gl.dept === ui.dept).sort((a,b) => (b.date||0) - (a.date||0));
+  const pend = list.filter(t => t.status === "Pending");
+  $("#txMeta").textContent = list.length ? `${list.length} expenses · ${pend.length} pending (${money(sum(pend, t => t.amount))})` : "";
+  if (!list.length) { $("#tx").innerHTML = `<div class="more">No expenses logged${ui.dept==="all"?"":" for "+esc(ui.dept)} yet.</div>`; return; }
+  $("#tx").innerHTML = `<table><thead><tr><th>Date</th><th>What</th><th>Department · GL line</th><th>Source</th><th>Status</th><th class="n">Amount</th></tr></thead><tbody>
+    ${list.slice(0, 15).map(t => `<tr><td>${dfmt(t.date)}</td><td><span class="desc">${esc(t.what || t.item || "Expense")}</span>${t.vendor?`<span class="catline" style="display:block">${esc(t.vendor)}${t.ref?" · "+esc(t.ref):""}</span>`:""}</td>
+      <td>${esc(t.gl.dept)}<span class="catline" style="display:block">${esc(t.gl.desc)}</span></td><td>${esc(t.pay || "–")}</td>
+      <td><span class="chip s-${t.status==="Pending"?"watch":"ok"}">${esc(t.status)}</span></td><td class="n">${money2(t.amount)}</td></tr>`).join("")}
+  </tbody></table>${list.length > 15 ? `<div class="more">Showing the 15 most recent of ${list.length}.</div>` : ""}`;
+}
+
+/* ---------- loading the Excel file ---------- */
+function sheetRows(wb, name){
+  const ws = wb.Sheets[name];
+  if (!ws) throw new Error(`The file has no “${name}” sheet. Load the latest “2026-2027 GL Budget & Expense Tracker” workbook.`);
+  return XLSX.utils.sheet_to_json(ws, {range:3, defval:null, raw:true});
+}
+function parseWorkbook(buf){
+  if (typeof XLSX === "undefined") throw new Error("The spreadsheet reader didn't load. Check your internet connection and try again.");
+  const wb = XLSX.read(buf, {type:"array"});
+  const gl = sheetRows(wb, "GL Budget").filter(r => Number.isInteger(r["GL Key"])).map(r => ({
+    k:r["GL Key"], dept:r["Department (Tab)"], dnum:String(r["Dept #"]??""), sec:r["Section"], cat:r["Category"], desc:r["GL Description"],
+    gl:r["GL Code"], prev:+r["2025-26 Actual"]||0, label:r["Tracker Label (used in Transactions)"], split:r["Split by Semester?"] === "Yes" }));
+  if (!gl.length || !gl[0].label) throw new Error("The GL Budget sheet's columns don't look right. Keep the column headers as they came.");
+  const li = sheetRows(wb, "Line Items").filter(r => Number.isInteger(r["GL Key"])).map(r => ({
+    k:r["GL Key"], name:r["Line Item"], grp:r["Sub-group"]||"", b:+r["2026-27 Budget"]||0, inc:r["Counted in AGM Total?"] === "Yes", sem:r["Semester"] || "Full year" }));
+  // Google Sheets tracker: "Tracker Ledger"; Excel tracker: "Expense Ledger" (same columns, header on row 4).
+  const tx = sheetRows(wb, wb.Sheets["Tracker Ledger"] ? "Tracker Ledger" : "Expense Ledger").filter(r => typeof r["Amount (incl. tax)"] === "number" && String(r["Status"]||"").trim() !== "Void").map(r => ({
+    date: toDate(r["Date"]),
+    line:r["Budget Line"] || "", item:"", vendor:r["Payee"], what:r["Description"],
+    amount:r["Amount (incl. tax)"], pay:r["Source"], ref:r["Entry ID"], status:String(r["Status"]||"").trim() || "Approved" }));
+  return {gl, li, tx};
+}
+async function loadFile(f){
+  try {
+    const d = parseWorkbook(await f.arrayBuffer());
+    data = d; meta = {name: f.name + " · loaded " + new Date().toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}), live:true};
+    try { localStorage.setItem(STORE, JSON.stringify({data:{...d, tx:d.tx.map(x => ({...x, date:dayKey(x.date)}))}, meta})); } catch(e) {}
+    ui.open.clear(); render();
+  } catch (e) {
+    $("#notice").innerHTML = `<div class="notice err"><div><strong>Couldn't read that file.</strong> ${esc(e.message)}</div></div>`;
+  }
+}
+
+/* ---------- events ---------- */
+$("#file").addEventListener("change", e => { const f = e.target.files[0]; if (f) loadFile(f); e.target.value = ""; });
+$("#forget").addEventListener("click", () => { try { localStorage.removeItem(STORE); } catch(e) {} data = SNAPSHOT; meta = {name:"Budget snapshot", live:false}; render(); });
+let dragDepth = 0;
+addEventListener("dragenter", e => { if ([...(e.dataTransfer?.types||[])].includes("Files")) { dragDepth++; $("#drop").hidden = false; } });
+addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("#drop").hidden = true; } });
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => { e.preventDefault(); dragDepth = 0; $("#drop").hidden = true; const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-dept]"); if (!b) return; ui.dept = b.dataset.dept; try { localStorage.setItem(STORE+"-dept", ui.dept); } catch(_) {} render(); });
+$("#q").addEventListener("input", e => { ui.q = e.target.value; renderDepts(model()); });
+$("#sort").addEventListener("change", e => { ui.sort = e.target.value; renderDepts(model()); });
+$("#empty").addEventListener("change", e => { ui.empty = e.target.checked; renderDepts(model()); });
+function toggle(tr){ const k = +tr.dataset.k; ui.open.has(k) ? ui.open.delete(k) : ui.open.add(k); renderDepts(model()); const n = document.querySelector(`tr.gl[data-k="${k}"]`); if (n) n.focus(); }
+$("#depts").addEventListener("click", e => { const tr = e.target.closest("tr.gl"); if (tr) toggle(tr); });
+$("#depts").addEventListener("keydown", e => { const tr = e.target.closest("tr.gl"); if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(tr); } });
+$("#attn").addEventListener("click", e => {
+  const c = e.target.closest("[data-jump]"); if (!c) return;
+  const k = +c.dataset.jump; const r = data.gl.find(g => g.k === k);
+  ui.dept = r.dept; ui.open.add(k); render();
+  const n = document.querySelector(`tr.gl[data-k="${k}"]`); if (n) { n.scrollIntoView({block:"center", behavior:"smooth"}); n.focus({preventScroll:true}); }
+});
+document.getElementById("semNow").textContent = curSem + " semester";
+render();
+</script>

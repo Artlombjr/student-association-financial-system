@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --green:#0D4624; --green-2:#1b5e38; --cream:#F1E8DE; --ink:#1d2320; --muted:#5d665f; --line:#d8d2c7; --bad:#a42727; --bad-bg:#f8dede; --ok-bg:#e4f1e7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 14px 14px 24px; font: 13px/1.4 Arial, "Helvetica Neue", sans-serif; color: var(--ink); background: #fff; }
+  h1 { font-size: 15px; margin: 0 0 2px; color: var(--green); }
+  .sub { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  form { display: grid; gap: 10px; }
+  label { display: grid; gap: 4px; font-weight: bold; font-size: 12px; }
+  label small { font-weight: normal; color: var(--muted); }
+  input, select, textarea { width: 100%; font: inherit; font-weight: normal; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
+  textarea { resize: vertical; min-height: 44px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--green); outline-offset: 0; border-color: var(--green); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .code { font-family: Consolas, "Courier New", monospace; font-size: 11px; color: var(--muted); font-weight: normal; word-break: break-all; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .seg span { display: block; text-align: center; padding: 7px 0; font-weight: normal; cursor: pointer; border-left: 1px solid var(--line); }
+  .seg label:first-child span { border-left: 0; }
+  .seg label { display: block; }
+  .seg input:checked + span { background: var(--green); color: #fff; font-weight: bold; }
+  .seg input:focus-visible + span { outline: 2px solid var(--green); outline-offset: -3px; }
+  details { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  details summary { cursor: pointer; font-weight: bold; font-size: 12px; }
+  details[open] summary { margin-bottom: 8px; }
+  button { font: inherit; font-weight: bold; padding: 9px; border: 0; border-radius: 6px; background: var(--green); color: #fff; cursor: pointer; }
+  button:hover { background: var(--green-2); }
+  button:disabled { opacity: .6; cursor: default; }
+  .msg { padding: 8px 10px; border-radius: 6px; font-size: 12px; }
+  .msg.ok { background: var(--ok-bg); color: var(--green); }
+  .msg.err { background: var(--bad-bg); color: var(--bad); }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  li .id { color: var(--muted); }
+  li .amt { font-variant-numeric: tabular-nums; font-weight: bold; }
+  li .d { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hint { color: var(--muted); font-size: 11.5px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <h1>Add manual expense</h1>
+  <p class="sub">Goes straight into the Expense Ledger and the budget tracker.</p>
+  <div id="loading" class="hint">Loading GL codes...</div>
+  <div id="fatal" class="msg err" hidden></div>
+
+  <form id="f" hidden autocomplete="off">
+    <label for="dept">Department
+      <select id="dept" required></select>
+    </label>
+    <label for="gl">GL code
+      <select id="gl" required></select>
+      <span id="glCode" class="code"></span>
+    </label>
+    <div class="row">
+      <label for="date">Date <input id="date" type="date" required></label>
+      <label for="amount"><span>Amount <small>(incl. tax)</small></span><input id="amount" type="number" step="0.01" inputmode="decimal" placeholder="0.00" required></label>
+    </div>
+    <span class="hint">Refund? Enter a negative amount.</span>
+    <label for="desc">What was it for?
+      <textarea id="desc" rows="2" required placeholder="e.g. Supply run for the Lounge"></textarea>
+    </label>
+    <label for="payee"><span>Paid to <small>(optional)</small></span>
+      <input id="payee" type="text" placeholder="Store or person">
+    </label>
+    <div>
+      <div style="font-weight:bold;font-size:12px;margin-bottom:4px">Status</div>
+      <div class="seg" role="radiogroup" aria-label="Status" id="status"></div>
+      <div class="hint" style="margin-top:4px">Approved and Posted count as spent. Pending shows separately.</div>
+    </div>
+    <details>
+      <summary>Tax and notes (optional)</summary>
+      <div class="row">
+        <label for="gst">GST <input id="gst" type="number" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+        <label for="hst">HST <input id="hst" type="number" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+      </div>
+      <label for="notes" style="margin-top:8px">Notes <textarea id="notes" rows="2"></textarea></label>
+    </details>
+    <div id="msg" class="msg" hidden></div>
+    <button id="save" type="submit">Add expense</button>
+  </form>
+
+  <section id="recentWrap" hidden>
+    <h2>Recent manual expenses</h2>
+    <ul id="recent"></ul>
+  </section>
+
+<script>
+  var S = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function fillGl() {
+    var dept = $('dept').value;
+    var list = S.gls.filter(function (g) { return g.depts.indexOf(dept) >= 0; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name); });
+    $('gl').innerHTML = list.length
+      ? '<option value="">Choose a GL code</option>' + list.map(function (g) { return '<option value="' + esc(g.code) + '">' + esc(g.name) + '</option>'; }).join('')
+      : '<option value="">No GL codes for this department</option>';
+    $('glCode').textContent = '';
+  }
+
+  function renderRecent(items) {
+    $('recentWrap').hidden = !items.length;
+    $('recent').innerHTML = items.map(function (r) {
+      return '<li><span class="id">' + esc(r.id) + '</span><span class="d" title="' + esc(r.desc) + '">' + esc(r.date) + ' &middot; ' + esc(r.desc) + '</span><span class="amt">' + money(r.amount) + '</span></li>';
+    }).join('');
+  }
+
+  function show(kind, text) { var m = $('msg'); m.className = 'msg ' + kind; m.textContent = text; m.hidden = false; }
+
+  function start(setup) {
+    S = setup;
+    $('loading').hidden = true;
+    $('dept').innerHTML = '<option value="">Choose a department</option>' + S.depts.map(function (d) { return '<option>' + esc(d) + '</option>'; }).join('');
+    $('status').innerHTML = S.statuses.map(function (s, i) {
+      return '<label><input type="radio" name="status" value="' + esc(s) + '"' + (i === 0 ? ' checked' : '') + '><span>' + esc(s) + '</span></label>';
+    }).join('');
+    $('date').value = S.today;
+    fillGl();
+    renderRecent(S.recent);
+    $('f').hidden = false;
+  }
+
+  $('dept').addEventListener('change', fillGl);
+  $('gl').addEventListener('change', function () { $('glCode').textContent = $('gl').value; });
+
+  $('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var data = {
+      dept: $('dept').value, gl: $('gl').value, date: $('date').value, amount: $('amount').value,
+      desc: $('desc').value, payee: $('payee').value, gst: $('gst').value, hst: $('hst').value, notes: $('notes').value,
+      status: (document.querySelector('input[name=status]:checked') || {}).value
+    };
+    $('save').disabled = true; $('save').textContent = 'Adding...'; $('msg').hidden = true;
+    google.script.run
+      .withSuccessHandler(function (res) {
+        $('save').disabled = false; $('save').textContent = 'Add expense';
+        show('ok', 'Added ' + res.id + '. It shows in the tracker on its next refresh.');
+        ['amount', 'desc', 'payee', 'gst', 'hst', 'notes'].forEach(function (id) { $(id).value = ''; });
+        renderRecent(res.recent);
+        $('amount').focus();
+      })
+      .withFailureHandler(function (err) {
+        $('save').disabled = false; $('save').textContent = 'Add expense';
+        show('err', (err && err.message) || String(err));
+      })
+      .addManualExpense(data);
+  });
+
+  google.script.run
+    .withSuccessHandler(start)
+    .withFailureHandler(function (err) { $('loading').hidden = true; var f = $('fatal'); f.textContent = (err && err.message) || String(err); f.hidden = false; })
+    .getManualExpenseSetup();
+</script>
+</body>
+</html>
