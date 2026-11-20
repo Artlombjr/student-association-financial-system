@@ -133,12 +133,19 @@ Built with the help of an AI coding assistant (Claude); I designed the workflow,
 
 ## Screenshots
 
-<!-- Add screenshots made with fake data only (never real claims, names or budget figures). -->
+All screenshots use fictional demo data (NUSA, invented names, example addresses).
 
-- Claim form: `docs/screenshots/claim-form.png`
-- VP signing page: `docs/screenshots/vp-signing.png`
-- Expense Ledger: `docs/screenshots/expense-ledger.png`
-- Budget tracker dashboard: `docs/screenshots/tracker-dashboard.png`
+![Claim form](docs/screenshots/claim-form.png)
+*The student claim form, expenses step, with two receipts attached.*
+
+![VP Finance signing page](docs/screenshots/vp-signing.png)
+*VP Finance assigns a GL code to each expense, draws a signature and approves.*
+
+![Claim PDF packet](docs/screenshots/claim-pdf.png)
+*The generated claim PDF with GL codes and all four signatures.*
+
+![Budget dashboard](docs/screenshots/budget-dashboard.png)
+*The standalone budget dashboard loaded with demo spending.*
 
 ## License
 
